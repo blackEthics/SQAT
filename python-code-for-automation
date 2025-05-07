@@ -1,0 +1,139 @@
+import time
+import csv
+import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import pytest
+from selenium.common.exceptions import NoSuchElementException
+
+# For Reporting
+from pytest_html import extras
+
+# User Data class equivalent
+class UserData:
+    def __init__(self, first_name, last_name, address, city, state, zip_code, phone, ssn, username, password):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.address = address
+        self.city = city
+        self.state = state
+        self.zip_code = zip_code
+        self.phone = phone
+        self.ssn = ssn
+        self.username = username
+        self.password = password
+
+# Function to read CSV data
+def read_user_data(csv_file_path):
+    user_list = []
+    with open(csv_file_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            user = UserData(
+                first_name=row['FirstName'],
+                last_name=row['LastName'],
+                address=row['Address'],
+                city=row['City'],
+                state=row['State'],
+                zip_code=row['ZipCode'],
+                phone=row['Phone'],
+                ssn=row['SSN'],
+                username=row['Username'],
+                password=row['Password']
+            )
+            user_list.append(user)
+    return user_list
+
+# Functions for UI operations
+def open_url(driver, url):
+    print("Khairul Islam Robi \nDept of CSE \nJagannath University")
+    driver.get(url)
+    time.sleep(1)
+    driver.maximize_window()
+    print(f"Opened URL: {url}")
+
+def register_user(driver, user):
+    driver.find_element(By.LINK_TEXT, "Register").click()
+    time.sleep(1)
+
+    driver.find_element(By.ID, "customer.firstName").send_keys(user.first_name)
+    print(f"Typed first name: {user.first_name}")
+
+    driver.find_element(By.ID, "customer.lastName").send_keys(user.last_name)
+    print(f"Typed last name: {user.last_name}")
+
+    driver.find_element(By.ID, "customer.address.street").send_keys(user.address)
+    print(f"Typed address: {user.address}")
+
+    driver.find_element(By.ID, "customer.address.city").send_keys(user.city)
+    print(f"Typed city: {user.city}")
+
+    driver.find_element(By.ID, "customer.address.state").send_keys(user.state)
+    print(f"Typed state: {user.state}")
+
+    driver.find_element(By.ID, "customer.address.zipCode").send_keys(user.zip_code)
+    print(f"Typed zip code: {user.zip_code}")
+
+    driver.find_element(By.ID, "customer.phoneNumber").send_keys(user.phone)
+    print(f"Typed phone number: {user.phone}")
+
+    driver.find_element(By.ID, "customer.ssn").send_keys(user.ssn)
+    print(f"Typed SSN: {user.ssn}")
+
+    driver.find_element(By.ID, "customer.username").send_keys(user.username)
+    print(f"Typed username: {user.username}")
+
+    driver.find_element(By.ID, "customer.password").send_keys(user.password)
+    print(f"Typed password: {user.password}")
+
+    driver.find_element(By.ID, "repeatedPassword").send_keys(user.password)
+    print(f"Typed confirm password: {user.password}")
+
+    driver.find_element(By.CSS_SELECTOR, "#customerForm > table > tbody > tr:nth-child(13) > td:nth-child(2) > input").click()
+    print("User registered successfully")
+    time.sleep(1)
+
+def logout(driver):
+    driver.find_element(By.CSS_SELECTOR, "#leftPanel > ul > li:nth-child(8) > a").click()
+    print("User logged out successfully")
+    time.sleep(1)
+
+def perform_login(driver, username, password):
+    driver.find_element(By.CSS_SELECTOR, "#loginPanel > form > div:nth-child(2) > input").send_keys(username)
+    print(f"Typed username: {username}")
+
+    driver.find_element(By.CSS_SELECTOR, "#loginPanel > form > div:nth-child(4) > input").send_keys(password)
+    print(f"Typed password: {password}")
+
+    driver.find_element(By.CSS_SELECTOR, "#loginPanel > form > div:nth-child(5) > input").click()
+    print("Clicked submit button")
+    time.sleep(1)
+
+def validate_login(driver):
+    try:
+        driver.find_element(By.CSS_SELECTOR, "#leftPanel > ul > li:nth-child(8) > a")
+        print("Login successful")
+        return True
+    except NoSuchElementException:
+        print("Login failed")
+        return False
+
+# Pytest structure for generating report
+@pytest.mark.parametrize("user", read_user_data(r"D:\UserData\UserData.csv"))
+def test_parabank_ui(user):
+    driver = webdriver.Chrome()
+
+    try:
+        open_url(driver, "https://parabank.parasoft.com/parabank/index.htm")
+
+        register_user(driver, user)
+        logout(driver)
+        perform_login(driver, user.username, user.password)
+
+        assert validate_login(driver), "Login validation failed"
+
+    except Exception as e:
+        pytest.fail(f"Test failed with exception: {str(e)}")
+    finally:
+        driver.quit()
+
